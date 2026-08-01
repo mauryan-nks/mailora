@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mailora — Email Marketing</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { ink: '#183B3B', mist: '#EEF7F5', mint: '#44B89D', sea: '#288DA5', lime: '#C9F26B' },
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
+          boxShadow: {
+            soft: '10px 10px 25px rgba(46, 101, 94, .10), -10px -10px 25px rgba(255, 255, 255, .88)',
+            insetsoft: 'inset 4px 4px 10px rgba(46, 101, 94, .10), inset -4px -4px 10px rgba(255,255,255,.85)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
+    * { scrollbar-width: thin; scrollbar-color: #b4d9d1 transparent; }
+    body { font-family: 'DM Sans', sans-serif; background: #edf6f4; }
+    h1,h2,h3,.brand { font-family: 'Manrope', sans-serif; }
+    .nav-link.active { color:#153f3d; background:linear-gradient(135deg,#ddf3ed,#f8fffd); box-shadow:5px 5px 13px rgba(50,100,93,.12),-5px -5px 13px #fff; }
+    .nav-link.active::before { content:''; width:4px; height:22px; border-radius:99px; position:absolute; left:-1px; background:#3fb297; }
+    .ring-progress { background: conic-gradient(#3eb49a 0 77%, #d9ebe7 77% 100%); }
+    .modal { transition:.2s ease; }
+    .modal.hidden-modal { opacity:0; pointer-events:none; }
+    @media(max-width:1023px){ aside { transform:translateX(-105%); transition:.25s ease; } aside.open { transform:translateX(0); } }
+  </style>
+</head>
+<body class="text-ink antialiased">
+  <div class="min-h-screen lg:flex">
+    <aside id="sidebar" class="fixed z-40 h-screen w-[250px] border-r border-white/70 bg-[#edf6f4] px-4 py-6 lg:sticky lg:top-0">
+      <div class="flex items-center justify-between px-3">
+        <a href="#" class="brand flex items-center gap-2.5 text-xl font-extrabold">
+          <span class="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-mint to-sea text-white shadow-soft"><i data-lucide="send" class="h-5 w-5"></i></span>
+          mailora<span class="text-mint">.</span>
+        </a>
+        <button id="closeNav" class="lg:hidden"><i data-lucide="x"></i></button>
+      </div>
+
+      <nav class="mt-10 space-y-1 text-sm font-semibold">
+        <p class="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[#87a5a0]">Workspace</p>
+        <a class="nav-link active relative flex items-center gap-3 rounded-xl px-3 py-3" href="#dashboard" data-page="Dashboard"><i data-lucide="layout-dashboard" class="h-[18px]"></i>Overview</a>
+        <a class="nav-link relative flex items-center gap-3 rounded-xl px-3 py-3 text-[#6f8d88]" href="#contacts" data-page="Contacts"><i data-lucide="users" class="h-[18px]"></i>Contacts <span class="ml-auto text-xs">24.8k</span></a>
+        <a class="nav-link relative flex items-center gap-3 rounded-xl px-3 py-3 text-[#6f8d88]" href="#campaigns" data-page="Campaigns"><i data-lucide="mail" class="h-[18px]"></i>Campaigns</a>
+        <a class="nav-link relative flex items-center gap-3 rounded-xl px-3 py-3 text-[#6f8d88]" href="#automation" data-page="Automation"><i data-lucide="workflow" class="h-[18px]"></i>Automation</a>
+        <a class="nav-link relative flex items-center gap-3 rounded-xl px-3 py-3 text-[#6f8d88]" href="#forms" data-page="Forms"><i data-lucide="panel-top" class="h-[18px]"></i>Forms & Pages</a>
+        <a class="nav-link relative flex items-center gap-3 rounded-xl px-3 py-3 text-[#6f8d88]" href="#templates" data-page="Templates"><i data-lucide="panels-top-left" class="h-[18px]"></i>Templates</a>
+        <p class="mb-3 mt-8 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[#87a5a0]">Manage</p>
+        <a class="nav-link relative flex items-center gap-3 rounded-xl px-3 py-3 text-[#6f8d88]" href="#reports" data-page="Reports"><i data-lucide="chart-no-axes-combined" class="h-[18px]"></i>Reports</a>
+        <a class="nav-link relative flex items-center gap-3 rounded-xl px-3 py-3 text-[#6f8d88]" href="#team" data-page="Team"><i data-lucide="user-round-cog" class="h-[18px]"></i>Team</a>
+        <a class="nav-link relative flex items-center gap-3 rounded-xl px-3 py-3 text-[#6f8d88]" href="#settings" data-page="Settings"><i data-lucide="settings-2" class="h-[18px]"></i>Settings</a>
+      </nav>
+
+      <div class="absolute bottom-6 left-4 right-4 rounded-2xl bg-[#e5f1ee] p-3 shadow-insetsoft">
+        <div class="mb-2 flex justify-between text-xs font-semibold"><span>Monthly emails</span><span>68%</span></div>
+        <div class="h-1.5 rounded-full bg-white"><div class="h-full w-[68%] rounded-full bg-gradient-to-r from-mint to-sea"></div></div>
+        <p class="mt-2 text-[11px] text-[#77928e]">68,240 of 100,000 used</p>
+      </div>
+    </aside>
+
+    <main class="min-w-0 flex-1 px-4 pb-10 sm:px-7 lg:px-9">
+      <header class="sticky top-0 z-30 -mx-4 flex h-[86px] items-center justify-between border-b border-white/70 bg-[#edf6f4]/90 px-4 backdrop-blur sm:-mx-7 sm:px-7 lg:-mx-9 lg:px-9">
+        <div class="flex items-center gap-3">
+          <button id="openNav" class="grid h-10 w-10 place-items-center rounded-xl bg-[#eef7f5] shadow-soft lg:hidden"><i data-lucide="menu"></i></button>
+          <div>
+            <p class="text-xs font-semibold text-[#819b97]">Sunday, August 2</p>
+            <h1 id="pageTitle" class="text-xl font-extrabold sm:text-2xl">Good morning, Olivia</h1>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-4">
+          <button class="grid h-10 w-10 place-items-center rounded-xl bg-[#eef7f5] text-[#668681] shadow-soft"><i data-lucide="bell" class="h-[18px]"></i></button>
+          <div class="hidden items-center gap-3 border-l border-[#d1e3df] pl-4 sm:flex">
+            <div class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#c9f26b] to-[#55c2a6] font-bold text-white">OM</div>
+            <div><p class="text-sm font-bold">Olivia Martin</p><p class="text-[11px] text-[#839b97]">Brightside Studio</p></div>
+            <i data-lucide="chevron-down" class="h-4 w-4 text-[#8ba09d]"></i>
+          </div>
+        </div>
+      </header>
+
+      <section class="mt-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div><h2 class="text-2xl font-extrabold">Here’s what’s happening</h2><p class="mt-1 text-sm text-[#728d89]">Your audience is growing. Keep the momentum going.</p></div>
+        <div class="flex gap-3">
+          <button id="importBtn" class="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-[#466f69] shadow-soft"><i data-lucide="upload" class="h-4 w-4"></i>Import contacts</button>
+          <button id="createBtn" class="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#43b89d] to-[#298fa6] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#42ad9a]/20"><i data-lucide="plus" class="h-4 w-4"></i>Create campaign</button>
+        </div>
+      </section>
+
+      <section class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <article class="rounded-2xl bg-[#eff8f6] p-5 shadow-soft"><div class="flex justify-between"><span class="grid h-10 w-10 place-items-center rounded-xl bg-[#d9f4ed] text-mint"><i data-lucide="users-round" class="h-5"></i></span><span class="rounded-full bg-[#ddf4e9] px-2 py-1 text-xs font-bold text-[#26916f]">+12.4%</span></div><p class="mt-5 text-sm font-medium text-[#718c88]">Total contacts</p><p class="mt-1 text-3xl font-extrabold">24,892</p></article>
+        <article class="rounded-2xl bg-[#eff8f6] p-5 shadow-soft"><div class="flex justify-between"><span class="grid h-10 w-10 place-items-center rounded-xl bg-[#dceef4] text-sea"><i data-lucide="mail-check" class="h-5"></i></span><span class="rounded-full bg-[#ddf4e9] px-2 py-1 text-xs font-bold text-[#26916f]">+8.2%</span></div><p class="mt-5 text-sm font-medium text-[#718c88]">Emails sent</p><p class="mt-1 text-3xl font-extrabold">68,240</p></article>
+        <article class="rounded-2xl bg-[#eff8f6] p-5 shadow-soft"><div class="flex justify-between"><span class="grid h-10 w-10 place-items-center rounded-xl bg-[#e8f3d4] text-[#78a832]"><i data-lucide="mouse-pointer-click" class="h-5"></i></span><span class="rounded-full bg-[#ddf4e9] px-2 py-1 text-xs font-bold text-[#26916f]">+3.1%</span></div><p class="mt-5 text-sm font-medium text-[#718c88]">Avg. click rate</p><p class="mt-1 text-3xl font-extrabold">12.8%</p></article>
+        <article class="rounded-2xl bg-[#eff8f6] p-5 shadow-soft"><div class="flex justify-between"><span class="grid h-10 w-10 place-items-center rounded-xl bg-[#e9e6f7] text-[#8170bd]"><i data-lucide="eye" class="h-5"></i></span><span class="rounded-full bg-[#f7e8df] px-2 py-1 text-xs font-bold text-[#c27b54]">-0.4%</span></div><p class="mt-5 text-sm font-medium text-[#718c88]">Avg. open rate</p><p class="mt-1 text-3xl font-extrabold">41.6%</p></article>
+      </section>
+
+      <section class="mt-5 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
+        <article class="rounded-2xl bg-[#eff8f6] p-5 shadow-soft sm:p-6">
+          <div class="mb-5 flex items-start justify-between"><div><h3 class="font-extrabold">Campaign performance</h3><p class="mt-1 text-xs text-[#809a96]">Last 30 days activity</p></div><select id="chartPeriod" class="rounded-lg border-0 bg-[#e4f0ed] px-3 py-2 text-xs font-bold outline-none"><option value="30">Last 30 days</option><option value="7">Last 7 days</option></select></div>
+          <div class="h-[270px]"><canvas id="performanceChart"></canvas></div>
+        </article>
+
+        <article class="rounded-2xl bg-[#eff8f6] p-5 shadow-soft sm:p-6">
+          <div class="flex items-start justify-between"><div><h3 class="font-extrabold">Audience health</h3><p class="mt-1 text-xs text-[#809a96]">List quality overview</p></div><button class="text-[#79918e]"><i data-lucide="more-horizontal"></i></button></div>
+          <div class="my-7 flex items-center justify-center gap-7">
+            <div class="ring-progress grid h-32 w-32 place-items-center rounded-full"><div class="grid h-[94px] w-[94px] place-items-center rounded-full bg-[#eff8f6] text-center"><div><p class="text-2xl font-extrabold">77%</p><p class="text-[10px] text-[#7e9692]">ENGAGED</p></div></div></div>
+            <div class="space-y-3 text-xs"><p class="flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-mint"></span><span class="text-[#78908c]">Active</span><b class="ml-auto">19,166</b></p><p class="flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#a9d4cd]"></span><span class="text-[#78908c]">Inactive</span><b class="ml-auto">4,485</b></p><p class="flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#f4b59b]"></span><span class="text-[#78908c]">Unsubscribed</span><b class="ml-auto">1,241</b></p></div>
+          </div>
+          <div class="rounded-xl bg-[#e4f1ee] p-4 shadow-insetsoft"><div class="flex items-center gap-3"><span class="grid h-9 w-9 place-items-center rounded-lg bg-white text-mint"><i data-lucide="sparkles" class="h-4"></i></span><div><p class="text-xs font-bold">Great audience health!</p><p class="mt-0.5 text-[11px] text-[#758f8a]">Your engagement is 14% above average.</p></div></div></div>
+        </article>
+      </section>
+
+      <section class="mt-5 grid gap-5 xl:grid-cols-[1.65fr_1fr]">
+        <article class="rounded-2xl bg-[#eff8f6] p-5 shadow-soft sm:p-6">
+          <div class="mb-5 flex items-center justify-between"><div><h3 class="font-extrabold">Recent campaigns</h3><p class="mt-1 text-xs text-[#809a96]">Performance at a glance</p></div><button class="text-xs font-bold text-sea">View all →</button></div>
+          <div class="overflow-x-auto"><table class="w-full min-w-[600px] text-left text-sm"><thead class="text-[10px] uppercase tracking-wider text-[#8aa19d]"><tr><th class="pb-3 font-bold">Campaign</th><th class="pb-3 font-bold">Status</th><th class="pb-3 font-bold">Sent</th><th class="pb-3 font-bold">Open rate</th><th class="pb-3 font-bold">CTR</th></tr></thead><tbody class="divide-y divide-[#dbeae7]">
+            <tr><td class="py-4"><p class="font-bold">Summer essentials are here</p><p class="text-[11px] text-[#829994]">Jul 30, 2026</p></td><td><span class="rounded-full bg-[#d9f3e8] px-2.5 py-1 text-[11px] font-bold text-[#25876a]">Sent</span></td><td class="font-semibold">18,420</td><td class="font-semibold">48.2%</td><td class="font-semibold">14.7%</td></tr>
+            <tr><td class="py-4"><p class="font-bold">July product round-up</p><p class="text-[11px] text-[#829994]">Jul 24, 2026</p></td><td><span class="rounded-full bg-[#d9f3e8] px-2.5 py-1 text-[11px] font-bold text-[#25876a]">Sent</span></td><td class="font-semibold">17,885</td><td class="font-semibold">42.8%</td><td class="font-semibold">11.9%</td></tr>
+            <tr><td class="py-4"><p class="font-bold">Weekend flash sale</p><p class="text-[11px] text-[#829994]">Scheduled Aug 4</p></td><td><span class="rounded-full bg-[#dcecf4] px-2.5 py-1 text-[11px] font-bold text-[#377f97]">Scheduled</span></td><td class="text-[#91a5a1]">—</td><td class="text-[#91a5a1]">—</td><td class="text-[#91a5a1]">—</td></tr>
+          </tbody></table></div>
+        </article>
+
+        <article class="rounded-2xl bg-[#eff8f6] p-5 shadow-soft sm:p-6">
+          <h3 class="font-extrabold">Quick actions</h3><p class="mt-1 text-xs text-[#809a96]">What would you like to do?</p>
+          <div class="mt-5 grid grid-cols-2 gap-3">
+            <button class="quick rounded-xl bg-[#e8f4f1] p-4 text-left shadow-insetsoft" data-action="Campaign builder"><span class="grid h-9 w-9 place-items-center rounded-lg bg-white text-mint"><i data-lucide="wand-sparkles" class="h-4"></i></span><p class="mt-3 text-xs font-bold">New campaign</p></button>
+            <button class="quick rounded-xl bg-[#e8f4f1] p-4 text-left shadow-insetsoft" data-action="Import contacts"><span class="grid h-9 w-9 place-items-center rounded-lg bg-white text-sea"><i data-lucide="user-plus" class="h-4"></i></span><p class="mt-3 text-xs font-bold">Add contacts</p></button>
+            <button class="quick rounded-xl bg-[#e8f4f1] p-4 text-left shadow-insetsoft" data-action="Automation flow"><span class="grid h-9 w-9 place-items-center rounded-lg bg-white text-[#7e70bd]"><i data-lucide="workflow" class="h-4"></i></span><p class="mt-3 text-xs font-bold">Automation</p></button>
+            <button class="quick rounded-xl bg-[#e8f4f1] p-4 text-left shadow-insetsoft" data-action="Template library"><span class="grid h-9 w-9 place-items-center rounded-lg bg-white text-[#7da332]"><i data-lucide="layout-template" class="h-4"></i></span><p class="mt-3 text-xs font-bold">Use template</p></button>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal hidden-modal fixed inset-0 z-50 grid place-items-center bg-[#153b39]/30 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-md rounded-3xl bg-[#edf6f4] p-6 shadow-2xl">
+      <div class="flex items-center justify-between"><div><p class="text-xs font-bold uppercase tracking-widest text-mint">Get started</p><h3 id="modalTitle" class="mt-1 text-xl font-extrabold">Create campaign</h3></div><button id="closeModal" class="grid h-9 w-9 place-items-center rounded-xl shadow-soft"><i data-lucide="x" class="h-4"></i></button></div>
+      <div class="mt-6 space-y-4"><label class="block text-xs font-bold text-[#64827d]">Campaign name<input class="mt-2 w-full rounded-xl border-0 bg-[#e4efed] px-4 py-3 text-sm outline-none shadow-insetsoft" placeholder="e.g. August newsletter"></label><label class="block text-xs font-bold text-[#64827d]">Audience<select class="mt-2 w-full rounded-xl border-0 bg-[#e4efed] px-4 py-3 text-sm outline-none shadow-insetsoft"><option>All active subscribers</option><option>Engaged customers</option><option>New subscribers</option></select></label></div>
+      <button id="continueBtn" class="mt-6 w-full rounded-xl bg-gradient-to-r from-mint to-sea py-3 text-sm font-bold text-white">Continue to builder</button>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-6 right-6 z-[60] translate-y-20 rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-white opacity-0 shadow-xl transition-all">Ready to go</div>
+
+  <script>
+    lucide.createIcons();
+    const sidebar=document.getElementById('sidebar');
+    document.getElementById('openNav').onclick=()=>sidebar.classList.add('open');
+    document.getElementById('closeNav').onclick=()=>sidebar.classList.remove('open');
+    document.querySelectorAll('.nav-link').forEach(link=>link.addEventListener('click',()=>{document.querySelectorAll('.nav-link').forEach(x=>x.classList.remove('active'));link.classList.add('active');document.getElementById('pageTitle').textContent=link.dataset.page;sidebar.classList.remove('open');}));
+    const modal=document.getElementById('modal');
+    const openModal=(title)=>{document.getElementById('modalTitle').textContent=title;modal.classList.remove('hidden-modal')};
+    document.getElementById('createBtn').onclick=()=>openModal('Create campaign');
+    document.getElementById('importBtn').onclick=()=>openModal('Import contacts');
+    document.querySelectorAll('.quick').forEach(b=>b.onclick=()=>openModal(b.dataset.action));
+    document.getElementById('closeModal').onclick=()=>modal.classList.add('hidden-modal');
+    modal.onclick=e=>{if(e.target===modal)modal.classList.add('hidden-modal')};
+    const toast=document.getElementById('toast');
+    document.getElementById('continueBtn').onclick=()=>{modal.classList.add('hidden-modal');toast.textContent='Campaign draft created';toast.classList.remove('translate-y-20','opacity-0');setTimeout(()=>toast.classList.add('translate-y-20','opacity-0'),2200)};
+    const ctx=document.getElementById('performanceChart');
+    const data30={labels:['Jul 4','Jul 9','Jul 14','Jul 19','Jul 24','Jul 30'],opens:[28,35,31,44,39,49],clicks:[8,11,10,15,13,18]};
+    const data7={labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],opens:[35,39,36,44,49,46,52],clicks:[10,12,11,14,18,15,20]};
+    const chart=new Chart(ctx,{type:'line',data:{labels:data30.labels,datasets:[{label:'Open rate',data:data30.opens,borderColor:'#41b398',backgroundColor:'rgba(65,179,152,.12)',fill:true,tension:.42,borderWidth:2.5,pointRadius:0},{label:'Click rate',data:data30.clicks,borderColor:'#318fa6',backgroundColor:'transparent',tension:.42,borderWidth:2.5,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{position:'top',align:'end',labels:{usePointStyle:true,boxWidth:7,font:{family:'DM Sans',size:11}}}},scales:{x:{grid:{display:false},ticks:{color:'#8aa09c',font:{size:10}}},y:{beginAtZero:true,grid:{color:'rgba(117,151,145,.12)'},border:{display:false},ticks:{color:'#8aa09c',font:{size:10},callback:v=>v+'%'}}}}});
+    document.getElementById('chartPeriod').onchange=e=>{const d=e.target.value==='7'?data7:data30;chart.data.labels=d.labels;chart.data.datasets[0].data=d.opens;chart.data.datasets[1].data=d.clicks;chart.update()};
+  </script>
+</body>
+</html>
