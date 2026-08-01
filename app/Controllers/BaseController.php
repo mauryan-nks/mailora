@@ -37,7 +37,7 @@ abstract class BaseController extends Controller
      */
     protected $helpers = [];
 
-    protected int $workspaceId = 1;
+    protected int $workspaceId = 0;
 
     protected function page(string $view, array $data = []): string
     {
@@ -57,6 +57,20 @@ abstract class BaseController extends Controller
     {
         // Do Not Edit This Line
         parent::initController($request, $response, $logger);
+
+        if (function_exists('app_auth') && app_auth()->loggedIn()) {
+            $membership = db_connect()->table('workspace_members')
+                ->where('user_id', app_auth()->id())
+                ->orderBy('id', 'ASC')
+                ->get()
+                ->getRowArray();
+
+            if ($membership !== null) {
+                $this->workspaceId = (int) $membership['workspace_id'];
+            }
+            $user=current_user();if($user&&$user['workspace_id'])$this->workspaceId=(int)$user['workspace_id'];
+            $selected=(int)session('active_workspace_id');if($selected&&$user&&(new \App\Libraries\WorkspaceAccessService())->canAccess($user,$selected))$this->workspaceId=$selected;
+        }
 
         // Preload any models, libraries, etc, here.
 

@@ -12,6 +12,12 @@ use CodeIgniter\Filters\InvalidChars;
 use CodeIgniter\Filters\PageCache;
 use CodeIgniter\Filters\PerformanceMetrics;
 use CodeIgniter\Filters\SecureHeaders;
+use App\Filters\ResolveBrand;
+use App\Filters\EnforceTenantDomain;
+use App\Filters\AppAuthFilter;
+use App\Filters\TenantContextFilter;
+use App\Filters\WorkspaceRequiredFilter;
+use App\Filters\PortalAccessFilter;
 
 class Filters extends BaseFilters
 {
@@ -34,6 +40,12 @@ class Filters extends BaseFilters
         'forcehttps'    => ForceHTTPS::class,
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
+        'brand'         => ResolveBrand::class,
+        'tenant'        => EnforceTenantDomain::class,
+        'appauth'       => AppAuthFilter::class,
+        'tenantctx'     => TenantContextFilter::class,
+        'workspace'     => WorkspaceRequiredFilter::class,
+        'portal'        => PortalAccessFilter::class,
     ];
 
     /**
@@ -70,7 +82,11 @@ class Filters extends BaseFilters
     public array $globals = [
         'before' => [
             // 'honeypot',
-            // 'csrf',
+            'brand',
+            'csrf' => ['except' => ['api/v1/*']],
+            'appauth' => ['except' => ['login*', 'register', 'logout', 'api/v1/*']],
+            'tenantctx' => ['except' => ['login*', 'register', 'logout', 'api/v1/*']],
+            'tenant' => ['except' => ['login*', 'register', 'auth/a/*', 'logout', 'api/v1/*']],
             // 'invalidchars',
         ],
         'after' => [
@@ -103,5 +119,7 @@ class Filters extends BaseFilters
      *
      * @var array<string, array<string, list<string>>>
      */
-    public array $filters = [];
+    public array $filters = [
+        'workspace' => ['before' => ['app/contacts*','app/campaigns*','app/analytics','app/automations','app/templates','app/forms','app/team','app/settings']],
+    ];
 }

@@ -2,6 +2,10 @@
 
 namespace Config;
 
+use App\Libraries\BrandContext;
+use App\Libraries\AuthService;
+use App\Libraries\TenantContext;
+use App\Libraries\PermissionService;
 use CodeIgniter\Config\BaseService;
 
 /**
@@ -19,6 +23,14 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
+    public static function brandContext(bool $getShared = true): BrandContext
+    {
+        if ($getShared) return static::getSharedInstance('brandContext');
+        return new BrandContext();
+    }
+    public static function appAuth(bool $getShared = true): AuthService { if($getShared)return static::getSharedInstance('appAuth');return new AuthService(); }
+    public static function tenantContext(bool $getShared=true):TenantContext{if($getShared)return static::getSharedInstance('tenantContext');return new TenantContext();}
+    public static function permissions(bool $getShared=true):PermissionService{if($getShared)return static::getSharedInstance('permissions');return new PermissionService();}
     /*
      * public static function example($getShared = true)
      * {

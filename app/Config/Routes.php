@@ -1,30 +1,11 @@
 <?php
-
 use CodeIgniter\Router\RouteCollection;
-
-/**
- * @var RouteCollection $routes
- */
-$routes->get('/', 'Dashboard::index');
-$routes->get('dashboard', 'Dashboard::index');
-$routes->group('contacts', static function ($routes) {
-    $routes->get('/', 'Contacts::index');
-    $routes->post('create', 'Contacts::create');
-    $routes->post('import', 'Contacts::import');
-    $routes->post('delete-duplicates', 'Contacts::deleteDuplicates');
-});
-$routes->group('campaigns', static function ($routes) {
-    $routes->get('/', 'Campaigns::index');
-    $routes->get('new', 'Campaigns::new');
-    $routes->post('create', 'Campaigns::create');
-    $routes->get('(:num)/edit', 'Campaigns::edit/$1');
-    $routes->post('(:num)/update', 'Campaigns::update/$1');
-    $routes->post('(:num)/test', 'Campaigns::test/$1');
-});
-$routes->get('analytics', 'Analytics::index');
-$routes->get('automations', 'Automations::index');
-$routes->get('templates', 'Templates::index');
-$routes->get('forms', 'Forms::index');
-$routes->get('team', 'Settings::team');
-$routes->get('settings', 'Settings::index');
-$routes->post('settings', 'Settings::save');
+/** @var RouteCollection $routes */
+$routes->get('/', 'Portal::home');
+$routes->get('login','Auth::login');$routes->post('login','Auth::authenticate');$routes->get('register','Auth::register');$routes->post('register','Auth::store');$routes->get('logout','Auth::logout');
+$routes->group('admin',['filter'=>'portal:admin'],static function($routes){$routes->get('dashboard','Dashboard::index');$routes->get('settings','Admin::settings');$routes->get('users','Admin::users/customer');$routes->get('resellers','Admin::users/reseller');$routes->post('users/(:segment)/plan','Admin::assignPlan/$1');$routes->get('plans','Admin::plans');$routes->post('plans','Admin::savePlan');$routes->get('payments','Admin::payments');$routes->post('payments','Admin::savePayment');$routes->get('clients','Workspaces::index');$routes->post('clients/(:segment)/open','Workspaces::open/$1');$routes->get('accounts','Accounts::index');$routes->post('accounts','Accounts::create');$routes->get('accounts/(:segment)/permissions','Accounts::permissions/$1');$routes->post('accounts/(:segment)/permissions','Accounts::savePermissions/$1');});
+$routes->group('reseller',['filter'=>'portal:reseller'],static function($routes){$routes->get('dashboard','Dashboard::index');$routes->get('clients','Workspaces::index');$routes->post('clients/(:segment)/open','Workspaces::open/$1');$routes->get('accounts','Accounts::index');$routes->post('accounts','Accounts::create');$routes->get('accounts/(:segment)/permissions','Accounts::permissions/$1');$routes->post('accounts/(:segment)/permissions','Accounts::savePermissions/$1');$routes->get('branding','Reseller::branding');$routes->post('branding','Reseller::saveBranding');$routes->post('domain','Reseller::saveDomain');$routes->post('domain/(:num)/verify','Reseller::verifyDomain/$1');});
+$routes->group('app',['filter'=>'portal:workspace'],static function($routes){$routes->get('dashboard','Dashboard::index');$routes->post('workspace/close','Workspaces::close');$routes->group('contacts',static function($routes){$routes->get('/','Contacts::index');$routes->post('create','Contacts::create');$routes->post('import','Contacts::import');$routes->post('api-keys','Contacts::createApiKey');$routes->post('api-keys/(:segment)/revoke','Contacts::revokeApiKey/$1');$routes->post('delete-duplicates','Contacts::deleteDuplicates');});$routes->group('campaigns',static function($routes){$routes->get('/','Campaigns::index');$routes->get('new','Campaigns::new');$routes->post('create','Campaigns::create');$routes->get('(:num)/edit','Campaigns::edit/$1');$routes->post('(:num)/update','Campaigns::update/$1');$routes->post('(:num)/test','Campaigns::test/$1');});$routes->get('analytics','Analytics::index');$routes->get('automations','Automations::index');$routes->get('templates','Templates::index');$routes->get('forms','Forms::index');$routes->get('team','Settings::team');$routes->get('settings','Settings::index');$routes->post('settings','Settings::save');});
+$routes->post('admin/users/(:segment)/status','Admin::changeStatus/$1',['filter'=>'portal:admin']);
+$routes->post('admin/plans/(:segment)','Admin::updatePlan/$1',['filter'=>'portal:admin']);
+$routes->post('api/v1/contacts','Api\\Contacts::create');
