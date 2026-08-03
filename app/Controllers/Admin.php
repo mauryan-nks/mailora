@@ -3,6 +3,8 @@ namespace App\Controllers;
 
 use App\Libraries\PlanQuotaService;
 use App\Support\Uuid;
+use Razorpay\Api\Api;
+use Stripe\StripeClient;
 
 class Admin extends BaseController
 {
@@ -47,9 +49,209 @@ class Admin extends BaseController
     {
         $db=db_connect();$user=$db->table('users')->where('uuid',$uuid)->get()->getRowArray();if(!$user||!in_array($user['account_type'],['customer','reseller'],true))throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();$active=$user['status']!=='active';$db->table('users')->where('id',$user['id'])->update(['status'=>$active?'active':'disabled','active'=>$active?1:0,'session_version'=>(int)$user['session_version']+1,'updated_at'=>date('Y-m-d H:i:s')]);return redirect()->back()->with('success',$active?'Account activated.':'Account disabled and active sessions invalidated.');
     }
-    public function payments(): string { return $this->page('admin/payments',['title'=>'Payment Settings','active'=>'admin-payments','gateways'=>db_connect()->table('payment_settings')->orderBy('gateway')->get()->getResultArray()]); }
+    public function payments(): string
+    {
+        $gateways = db_connect()->table('payment_settings')->whereIn('gateway', ['stripe', 'razorpay'])->orderBy('gateway')->get()->getResultArray();
+
+        return $this->page('admin/payments', [
+            'title' => 'Payment Settings',
+            'active' => 'admin-payments',
+            'gateways' => $gateways,
+        ]);
+    }
+
     public function savePayment()
     {
-        $gateway=(string)$this->request->getPost('gateway');if(!in_array($gateway,['stripe','razorpay','paypal'],true))return redirect()->back()->with('error','Unsupported payment gateway.');$db=db_connect();$data=['gateway'=>$gateway,'enabled'=>$this->request->getPost('enabled')?1:0,'mode'=>$this->request->getPost('mode')==='live'?'live':'test','public_key'=>$this->request->getPost('public_key')?:null,'currency'=>strtoupper((string)($this->request->getPost('currency')?:'USD')),'updated_at'=>date('Y-m-d H:i:s')];$old=$db->table('payment_settings')->where('gateway',$gateway)->get()->getRowArray();if($old)$db->table('payment_settings')->where('id',$old['id'])->update($data);else$db->table('payment_settings')->insert($data+['created_at'=>date('Y-m-d H:i:s')]);return redirect()->back()->with('success','Payment settings saved. Secret keys must be configured securely in the server environment.');
+        $gateway = (string) $this->request->getPost('gateway');
+        if (! in_array($gateway, ['stripe', 'razorpay'], true)) {
+            return redirect()->back()->with('error', 'Unsupported payment gateway.');
+        }
+
+        $mode = $this->request->getPost('mode') === 'live' ? 'live' : 'test';
+        $publicKey = trim((string) $this->request->getPost('public_key'));
+        $secretKey = trim((string) $this->request->getPost('secret_key'));
+        $webhookSecret = trim((string) $this->request->getPost('webhook_secret'));
+        $currency = strtoupper((string) ($this->request->getPost('currency') ?: 'USD'));
+        $enabled = $this->request->getPost('enabled') ? 1 : 0;
+
+        $db = db_connect();
+        $old = $db->table('payment_settings')->where('gateway', $gateway)->get()->getRowArray();
+        $existingSecret = null;
+        $existingWebhookSecret = null;
+
+        if ($old) {
+            try {
+                $existingSecret = $old['secret_encrypted'] ? service('encrypter')->decrypt($old['secret_encrypted']) : null;
+            } catch (\Throwable $e) {
+                $existingSecret = null;
+            }
+
+            try {
+                $existingWebhookSecret = $old['webhook_secret_encrypted'] ? service('encrypter')->decrypt($old['webhook_secret_encrypted']) : null;
+            } catch (\Throwable $e) {
+                $existingWebhookSecret = null;
+            }
+        }
+
+        if ($secretKey === '') {
+            $secretKey = $existingSecret;
+        }
+
+        if ($webhookSecret === '') {
+            $webhookSecret = $existingWebhookSecret;
+        }
+
+        if ($gateway === 'stripe') {
+            if ($secretKey === '') {
+                return redirect()->back()->withInput()->with('error', 'Stripe secret key is required.');
+            }
+        }
+
+        if ($gateway === 'razorpay') {
+            if ($publicKey === '' || $secretKey === '') {
+                return redirect()->back()->withInput()->with('error', 'Razorpay key ID and secret are required.');
+            }
+        }
+
+        $validationError = $this->validatePaymentCredentials($gateway, $mode, $publicKey, $secretKey);
+        if ($validationError !== null) {
+            return redirect()->back()->withInput()->with('error', $validationError);
+        }
+
+        $data = [
+            'gateway' => $gateway,
+            'enabled' => $enabled,
+            'mode' => $mode,
+            'public_key' => $publicKey ?: null,
+            'secret_encrypted' => $secretKey ? service('encrypter')->encrypt($secretKey) : null,
+            'webhook_secret_encrypted' => $webhookSecret ? service('encrypter')->encrypt($webhookSecret) : null,
+            'currency' => $currency,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+
+        if ($old) {
+            $db->table('payment_settings')->where('id', $old['id'])->update($data);
+        } else {
+            $data['created_at'] = date('Y-m-d H:i:s');
+            $db->table('payment_settings')->insert($data);
+        }
+
+        return redirect()->back()->with('success', 'Payment settings saved.');
+    }
+
+    private function validatePaymentCredentials(string $gateway, string $mode, string $publicKey, string $secretKey): ?string
+    {
+        try {
+            if ($gateway === 'stripe') {
+                $client = new \Stripe\StripeClient($secretKey);
+                $account = $client->accounts->retrieve();
+                if (empty($account->id)) {
+                    return 'Stripe credentials could not be verified.';
+                }
+            }
+
+            if ($gateway === 'razorpay') {
+                $api = new \Razorpay\Api\Api($publicKey, $secretKey);
+                $api->payment->all(['count' => 1]);
+            }
+        } catch (\Throwable $e) {
+            return $e->getMessage();
+        }
+
+        return null;
+    }
+
+    public function workers(): string
+    {
+        return $this->page('admin/workers', [
+            'title' => 'Worker Setup',
+            'active' => 'admin-workers',
+            'workerStatus' => $this->getWorkerStatus(),
+        ]);
+    }
+
+    public function verifyWorker()
+    {
+        $status = $this->getWorkerStatus();
+        $errors = [];
+
+        if (! is_executable(PHP_BINARY)) {
+            $errors[] = 'PHP CLI does not appear executable at ' . PHP_BINARY . '.';
+        }
+
+        if (! $status['spark_exists']) {
+            $errors[] = 'The spark CLI file is missing from the project root.';
+        }
+
+        if (! $status['logs_writable']) {
+            $errors[] = 'The writable/logs directory is not writable by the web server.';
+        }
+
+        if (function_exists('shell_exec') && $status['spark_exists']) {
+            $helpOutput = @shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(FCPATH . 'spark') . ' --help 2>&1');
+            if (! is_string($helpOutput) || trim($helpOutput) === '') {
+                $errors[] = 'Unable to execute spark from web server context. Check permissions and PHP CLI availability.';
+            }
+        }
+
+        if (! empty($errors)) {
+            return redirect()->back()->with('error', implode(' ', $errors));
+        }
+
+        return redirect()->back()->with('success', 'Worker environment verified successfully.');
+    }
+
+    public function verifyCron()
+    {
+        if (! function_exists('shell_exec')) {
+            return redirect()->back()->with('error', 'Cron verification is not available on this server because shell_exec is disabled.');
+        }
+
+        $expected = '* * * * * cd ' . escapeshellarg(FCPATH) . ' && ' . escapeshellcmd(PHP_BINARY) . ' ' . escapeshellarg(FCPATH . 'spark') . ' campaigns:process >> ' . escapeshellarg(WRITEPATH . 'logs/campaign-worker.log') . ' 2>&1';
+        $crontab = @shell_exec('crontab -l 2>&1');
+
+        if (! is_string($crontab) || trim($crontab) === '') {
+            return redirect()->back()->with('error', 'Unable to read the active crontab. Confirm the cron entry manually for the web server user.');
+        }
+
+        if (str_contains($crontab, 'campaigns:process') || str_contains($crontab, 'campaign:process')) {
+            return redirect()->back()->with('success', 'Cron entry appears present. Verify the task runs once per minute as configured.');
+        }
+
+        return redirect()->back()->with('error', 'Cron entry not found. Add the recommended worker command to the server crontab.');
+    }
+
+    public function runWorker()
+    {
+        if (! function_exists('shell_exec')) {
+            return redirect()->back()->with('error', 'Manual worker execution is not available because shell_exec is disabled.');
+        }
+
+        $command = 'cd ' . escapeshellarg(FCPATH) . ' && ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(FCPATH . 'spark') . ' campaigns:process 1 2>&1';
+        $output = @shell_exec($command);
+        $message = 'Manual worker run completed.';
+
+        if (! is_string($output)) {
+            $output = 'No output was returned from the command.';
+        }
+
+        return redirect()->back()->with('success', $message)->with('worker_output', trim($output));
+    }
+
+    private function getWorkerStatus(): array
+    {
+        $logFile = WRITEPATH . 'logs/campaign-worker.log';
+        $hasLog = file_exists($logFile);
+        $lastRun = $hasLog ? date('M d, Y H:i:s', filemtime($logFile)) : 'No worker log found';
+        $age = $hasLog ? (int) ((time() - filemtime($logFile)) / 60) : null;
+
+        return [
+            'last_run' => $lastRun,
+            'last_run_age_minutes' => $age,
+            'logs_writable' => is_writable(WRITEPATH . 'logs'),
+            'php_binary' => PHP_BINARY,
+            'spark_exists' => file_exists(FCPATH . 'spark'),
+            'log_path' => $logFile,
+        ];
     }
 }

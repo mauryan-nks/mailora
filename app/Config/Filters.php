@@ -83,10 +83,10 @@ class Filters extends BaseFilters
         'before' => [
             // 'honeypot',
             'brand',
-            'csrf' => ['except' => ['api/v1/*']],
-            'appauth' => ['except' => ['login*', 'register', 'logout', 'api/v1/*']],
-            'tenantctx' => ['except' => ['login*', 'register', 'logout', 'api/v1/*']],
-            'tenant' => ['except' => ['login*', 'register', 'auth/a/*', 'logout', 'api/v1/*']],
+            'csrf' => ['except' => ['api/v1/*', 'track/*']],
+            'appauth' => ['except' => ['login*', 'register', 'logout', 'api/v1/*', 'track/*']],
+            'tenantctx' => ['except' => ['login*', 'register', 'logout', 'api/v1/*', 'track/*']],
+            'tenant' => ['except' => ['login*', 'register', 'auth/a/*', 'logout', 'api/v1/*', 'track/*']],
             // 'invalidchars',
         ],
         'after' => [
